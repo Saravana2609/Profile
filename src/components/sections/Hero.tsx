@@ -40,7 +40,7 @@ export default function Hero() {
           <span className="text-textMuted">Available for opportunities</span>
         </motion.div>
 
-        {/* SR Avatar */}
+        {/* Profile Photo */}
         <motion.div {...fadeUp(0.1)} className="relative">
           <motion.div
             animate={{ y: [0, -12, 0] }}
@@ -53,14 +53,16 @@ export default function Hero() {
               transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
               className="absolute inset-0 rounded-full border-2 border-primary/40 scale-110"
             />
-            {/* Avatar circle */}
+            {/* Gradient border ring */}
             <div
-              className="w-32 h-32 md:w-36 md:h-36 rounded-full flex items-center justify-center text-white font-bold text-4xl md:text-5xl glow-border"
-              style={{
-                background: 'linear-gradient(135deg, #6C63FF, #00D4FF)',
-              }}
+              className="w-36 h-36 md:w-44 md:h-44 rounded-full p-[3px] glow-border"
+              style={{ background: 'linear-gradient(135deg, #6C63FF, #00D4FF)' }}
             >
-              {personalInfo.initials}
+              <img
+                src="/profile.jpeg"
+                alt={personalInfo.name}
+                className="w-full h-full rounded-full object-cover object-top"
+              />
             </div>
           </motion.div>
         </motion.div>
