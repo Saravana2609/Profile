@@ -1,25 +1,34 @@
-import { useRef, useState } from 'react'
+import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { Mail, Phone, MapPin, Send, CheckCircle2 } from 'lucide-react'
 import LinkedinIcon from '@/components/ui/LinkedinIcon'
 import { personalInfo } from '@/data/portfolio-data'
-import { sendContactEmail } from '@/utils/emailjs'
 import SectionTitle from '@/components/ui/SectionTitle'
 import type { FormStatus } from '@/types'
 
 export default function Contact() {
-  const formRef = useRef<HTMLFormElement>(null)
   const [status, setStatus] = useState<FormStatus>('idle')
+  const [form, setForm] = useState({ name: '', email: '', message: '' })
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }))
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!formRef.current) return
-
     setStatus('sending')
+
     try {
-      await sendContactEmail(formRef.current)
+      const res = await fetch('/api/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      })
+
+      if (!res.ok) throw new Error('Failed')
+
       setStatus('success')
-      formRef.current.reset()
+      setForm({ name: '', email: '', message: '' })
       setTimeout(() => setStatus('idle'), 5000)
     } catch {
       setStatus('error')
@@ -31,7 +40,7 @@ export default function Contact() {
     'w-full px-4 py-3 rounded-xl glass text-[#e2e8f0] placeholder-textMuted text-sm outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/40 transition-all border border-white/10 bg-transparent'
 
   return (
-    <section id="contact" className="py-24 px-6">
+    <section id="contact" className="py-24 px-6 relative">
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
@@ -96,17 +105,17 @@ export default function Contact() {
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
           >
-            <form ref={formRef} onSubmit={handleSubmit} className="glass rounded-2xl p-8 flex flex-col gap-4">
-              <input type="hidden" name="to_name" value="Saravana Raj" />
-
+            <form onSubmit={handleSubmit} className="glass rounded-2xl p-8 flex flex-col gap-4">
               <div>
                 <label className="text-xs font-medium text-textMuted uppercase tracking-widest mb-1.5 block">
                   Name
                 </label>
                 <input
                   type="text"
-                  name="from_name"
+                  name="name"
                   required
+                  value={form.name}
+                  onChange={handleChange}
                   placeholder="Your name"
                   className={inputClass}
                 />
@@ -118,8 +127,10 @@ export default function Contact() {
                 </label>
                 <input
                   type="email"
-                  name="from_email"
+                  name="email"
                   required
+                  value={form.email}
+                  onChange={handleChange}
                   placeholder="your@email.com"
                   className={inputClass}
                 />
@@ -133,6 +144,8 @@ export default function Contact() {
                   name="message"
                   required
                   rows={5}
+                  value={form.message}
+                  onChange={handleChange}
                   placeholder="Tell me about your project..."
                   className={`${inputClass} resize-none`}
                 />
