@@ -30,6 +30,7 @@ input group "General"
 input ulong  InpMagic        = 990026;   // Magic number
 input double InpRRR          = 2.0;       // Reward : Risk ratio
 input int    InpSlippage     = 20;        // Max deviation (points)
+input bool   InpDebug        = true;      // Print diagnostics to the Experts log
 
 input group "Position sizing"
 input bool   InpUseRiskSizing = true;     // Size lot by risk % of balance
@@ -40,7 +41,7 @@ input group "Entry filters"
 input bool   InpUseTrendFilter = true;    // Only trade with the EMA trend
 input int    InpEmaPeriod      = 50;      // Trend EMA period
 input double InpMinBodyPoints  = 50;      // Min candle body size (points), 0 = off
-input double InpMaxSpreadPoints= 30;      // Max allowed spread (points), 0 = off
+input double InpMaxSpreadPoints= 0;       // Max allowed spread (points), 0 = off
 
 input group "Session (server time)"
 input bool   InpUseSession   = false;     // Restrict trading to a time window
@@ -89,6 +90,23 @@ int OnInit()
    }
 
    last_bar_time = iTime(_Symbol, _Period, 0);
+
+   if(InpDebug)
+   {
+      double spread = (SymbolInfoDouble(_Symbol, SYMBOL_ASK) -
+                       SymbolInfoDouble(_Symbol, SYMBOL_BID)) / g_point;
+      PrintFormat("[CandleEA] %s digits=%d point=%.5f stops_level=%.1f pts | "
+                  "spread now=%.1f pts | lot min/step/max=%.2f/%.2f/%.2f | "
+                  "tickSize=%.5f tickValue=%.5f",
+                  _Symbol, g_digits, g_point,
+                  (double)SymbolInfoInteger(_Symbol, SYMBOL_TRADE_STOPS_LEVEL),
+                  spread,
+                  SymbolInfoDouble(_Symbol, SYMBOL_VOLUME_MIN),
+                  SymbolInfoDouble(_Symbol, SYMBOL_VOLUME_STEP),
+                  SymbolInfoDouble(_Symbol, SYMBOL_VOLUME_MAX),
+                  SymbolInfoDouble(_Symbol, SYMBOL_TRADE_TICK_SIZE),
+                  SymbolInfoDouble(_Symbol, SYMBOL_TRADE_TICK_VALUE));
+   }
    return(INIT_SUCCEEDED);
 }
 //+------------------------------------------------------------------+
@@ -112,10 +130,10 @@ void OnTick()
       return;
 
    if(!SessionAllowed())
-      return;
+      { Skip("session"); return; }
 
    if(!SpreadAllowed())
-      return;
+      { Skip("spread"); return; }
 
    // Previous (just-closed) candle.
    double open  = iOpen(_Symbol, _Period, 1);
@@ -125,7 +143,7 @@ void OnTick()
 
    double body = MathAbs(close - open);
    if(InpMinBodyPoints > 0 && body < InpMinBodyPoints * g_point)
-      return;  // candle too small, no edge
+      { Skip("body<min"); return; }  // candle too small, no edge
 
    double ask = SymbolInfoDouble(_Symbol, SYMBOL_ASK);
    double bid = SymbolInfoDouble(_Symbol, SYMBOL_BID);
@@ -133,14 +151,17 @@ void OnTick()
    bool bullish = (close > open);
    bool bearish = (close < open);
 
+   if(!bullish && !bearish)
+      { Skip("doji"); return; }
+
    // Trend filter: only trade in the EMA direction.
    if(InpUseTrendFilter)
    {
       double ema = TrendEma();
       if(ema == 0.0)
-         return;
-      if(bullish && close < ema) return;  // not an uptrend
-      if(bearish && close > ema) return;  // not a downtrend
+         { Skip("ema-unavailable"); return; }
+      if(bullish && close < ema) { Skip("buy-vs-trend"); return; }
+      if(bearish && close > ema) { Skip("sell-vs-trend"); return; }
    }
 
    if(bullish)
@@ -194,8 +215,15 @@ void OpenTrade(const ENUM_ORDER_TYPE type, double entry, double rawStop)
       ok = trade.Sell(lot, _Symbol, entry, sl, tp);
 
    if(!ok)
-      PrintFormat("Order failed: retcode=%d (%s)", trade.ResultRetcode(),
-                  trade.ResultRetcodeDescription());
+      PrintFormat("[CandleEA] Order FAILED: %s lot=%.2f entry=%.*f sl=%.*f tp=%.*f "
+                  "retcode=%d (%s)",
+                  (type == ORDER_TYPE_BUY ? "BUY" : "SELL"), lot,
+                  g_digits, entry, g_digits, sl, g_digits, tp,
+                  trade.ResultRetcode(), trade.ResultRetcodeDescription());
+   else if(InpDebug)
+      PrintFormat("[CandleEA] Order OK: %s lot=%.2f entry=%.*f sl=%.*f tp=%.*f",
+                  (type == ORDER_TYPE_BUY ? "BUY" : "SELL"), lot,
+                  g_digits, entry, g_digits, sl, g_digits, tp);
 }
 //+------------------------------------------------------------------+
 //| Manage the open position: break-even and trailing stop.          |
@@ -250,6 +278,14 @@ void ManageOpenPosition()
 //+------------------------------------------------------------------+
 //| Helpers                                                          |
 //+------------------------------------------------------------------+
+void Skip(const string reason)
+{
+   if(InpDebug)
+      PrintFormat("[CandleEA] %s skip: %s",
+                  TimeToString(iTime(_Symbol, _Period, 0), TIME_DATE | TIME_MINUTES),
+                  reason);
+}
+
 bool IsNewBar()
 {
    datetime t = iTime(_Symbol, _Period, 0);

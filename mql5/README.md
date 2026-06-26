@@ -29,13 +29,14 @@ new order on every candle.
 | General | `InpMagic` | 990026 | Magic number; EA only touches its own trades |
 | | `InpRRR` | 2.0 | Reward : risk ratio for the take-profit |
 | | `InpSlippage` | 20 | Max deviation in points |
+| | `InpDebug` | true | Print diagnostics + per-bar skip reasons to the Experts log |
 | Sizing | `InpUseRiskSizing` | true | Size the lot from risk % of balance |
 | | `InpRiskPercent` | 1.0 | Risk per trade as % of balance |
 | | `InpFixedLot` | 0.10 | Fallback fixed lot (also used if sizing off) |
 | Filters | `InpUseTrendFilter` | true | Only trade with the EMA trend |
 | | `InpEmaPeriod` | 50 | Trend EMA period |
 | | `InpMinBodyPoints` | 50 | Minimum candle body in points (0 = off) |
-| | `InpMaxSpreadPoints` | 30 | Max allowed spread in points (0 = off) |
+| | `InpMaxSpreadPoints` | 0 | Max allowed spread in points (0 = off) |
 | Session | `InpUseSession` | false | Restrict to a server-time window |
 | | `InpStartHour` / `InpEndHour` | 7 / 20 | Session window (supports overnight) |
 | Management | `InpUseBreakEven` | true | Move SL to break-even at `InpBreakEvenRR` |
@@ -64,6 +65,20 @@ new order on every candle.
    (in MetaEditor: *File → Open Data Folder → MQL5 → Experts*).
 2. Compile in MetaEditor (F7).
 3. Attach to a chart and enable **Algo Trading**.
+
+## Troubleshooting: "0 trades" in the Strategy Tester
+
+If a backtest produces no trades, a filter is blocking every bar. With
+`InpDebug = true` the EA prints, on init, the symbol scaling (digits, point,
+spread, lot limits) and, per bar, the reason it skipped (`spread`, `body<min`,
+`buy-vs-trend`, etc.) to the **Experts** / **Journal** tab. Read those lines to
+see exactly which filter is responsible.
+
+Note on **point-based filters** (`InpMinBodyPoints`, `InpMaxSpreadPoints`):
+"points" scale with the symbol's digits. On a 3-digit gold feed (`point =
+0.001`) a normal $0.25 spread is **250 points**, so a 30-point cap rejects every
+tick. `InpMaxSpreadPoints` therefore ships **disabled (0)** by default — check
+the debug log for your symbol's real spread, then set an appropriate cap.
 
 > **Disclaimer:** For educational/testing purposes. Always backtest and
 > forward-test on a demo account before risking real capital. Trading carries
