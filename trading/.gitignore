@@ -1,0 +1,9 @@
+# Exported market data — keep large CSVs out of git
+data/*.csv
+*.csv
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
