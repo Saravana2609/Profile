@@ -86,6 +86,8 @@ def main() -> None:
     src.add_argument("--mt5", action="store_true", help="Pull live from MT5 (Windows)")
     p.add_argument("--symbol", default="XAUUSD")
     p.add_argument("--timeframe", default="M15")
+    p.add_argument("--resample", default=None,
+                   help="Resample loaded data to this timeframe, e.g. M15/H1")
     p.add_argument("--bars", type=int, default=20_000)
     p.add_argument("--lookback", type=int, default=200)
     p.add_argument("--min-rr", type=float, default=1.2)
@@ -110,6 +112,15 @@ def main() -> None:
         print("No data source given — generating synthetic gold-like data.")
         print("(Use --csv data/XAUUSD_M15.csv for real MT5 data.)")
         bars = generate_synthetic(bars=args.bars)
+
+    if args.resample:
+        from volume_profile.data import resample_ohlcv
+        tf_min = {"M5": 5, "M15": 15, "M30": 30, "H1": 60, "H4": 240, "D1": 1440}
+        key = args.resample.upper()
+        if key not in tf_min:
+            p.error(f"--resample must be one of {list(tf_min)}")
+        bars = resample_ohlcv(bars, tf_min[key])
+        print(f"Resampled to {key}")
 
     print(f"Loaded {len(bars):,} bars "
           f"({bars['time'].iloc[0]} -> {bars['time'].iloc[-1]})")

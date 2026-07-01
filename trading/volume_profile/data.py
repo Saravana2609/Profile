@@ -92,6 +92,24 @@ def load_from_csv(path: str) -> pd.DataFrame:
     return df[COLUMNS].sort_values("time").reset_index(drop=True)
 
 
+def resample_ohlcv(bars: pd.DataFrame, minutes: int) -> pd.DataFrame:
+    """Resample bars to a higher timeframe (e.g. M5 -> H1).
+
+    Lets you export one low timeframe from MT5 and analyse every higher
+    timeframe from it, so the timeframe comparison uses one consistent dataset.
+    """
+    df = bars.set_index("time")
+    rule = f"{minutes}min"
+    agg = df.resample(rule, label="left", closed="left").agg(
+        open=("open", "first"),
+        high=("high", "max"),
+        low=("low", "min"),
+        close=("close", "last"),
+        volume=("volume", "sum"),
+    )
+    return agg.dropna().reset_index()
+
+
 def generate_synthetic(
     bars: int = 20_000,
     timeframe_minutes: int = 15,

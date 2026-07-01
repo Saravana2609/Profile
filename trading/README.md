@@ -30,11 +30,29 @@ Extract this folder to **`C:\Users\Saravana_Rx100\Gold`** (the path in
 
 1. **`setup.bat`** — installs Python deps + MetaTrader5 (run once).
 2. Open **MetaTrader 5** and log in.
-3. **`fetch.bat`** — exports `data\XAUUSD_M15.csv` from MT5.
-4. **`backtest.bat`** — runs the strategy (session filter + partial-TP + 5-fold
-   walk-forward) and prints the metrics.
+3. **`fetch.bat`** — exports `data\XAUUSD_M5.csv` from MT5 (the base timeframe;
+   everything higher is resampled from it).
+4. **`backtest.bat`** — quick M15 backtest with 5-fold walk-forward.
+5. **`report.bat`** — full **timeframe comparison + daily/weekly HTML report
+   with charts**, then opens it in your browser.
 
 To move the project, edit `GOLD_DIR` at the top of `config.py`.
+
+### Which timeframe is best? Let the data decide.
+
+`report.bat` (or `python analyze.py`) runs the **same** Volume-Profile strategy
+across M15 / M30 / H1 / H4, ranks them by **expectancy**, and shows the winner.
+No session lock — just Volume Profile + regime/rejection/reward:risk filters.
+The report includes:
+
+- 🏆 Best-timeframe ranking table + expectancy/win-rate bar charts
+- Volume Profile chart (POC / VAH / VAL + volume-by-price) for the winner
+- Equity curve with drawdown shading
+- **Daily and weekly P&L** bars and tables
+
+Rule of thumb (confirm it on your own data): **M15–H1 tends to be the sweet
+spot for XAUUSD** — below M5 is mostly spread/noise, and H4/D1 gives too few
+signals. But the report tells you empirically for *your* broker's data.
 
 ## Quick start (command line)
 
@@ -113,13 +131,17 @@ Each is a config knob so you can measure its effect honestly:
 ## Files
 ```
 volume_profile/
-  data.py       MT5 / CSV / synthetic data loaders
+  data.py       MT5 / CSV / synthetic loaders + resample_ohlcv
   profile.py    Volume Profile engine (POC/VAH/VAL/HVN/LVN)
   regime.py     Trend-vs-range filter (ADX rule + optional ML model)
   strategy.py   Reversal signal generation
   backtest.py   Event-driven backtester + metrics
+  report.py     Charts + self-contained HTML report
+config.py       GOLD_DIR path + defaults
 fetch_mt5.py    Export MT5 history to CSV (Windows)
-run_backtest.py Main entry point
+run_backtest.py Single-timeframe backtest
+analyze.py      Timeframe comparison + daily/weekly report
+setup.bat / fetch.bat / backtest.bat / report.bat   Windows one-click
 ```
 
 **This is a research/education tool, not financial advice. Trading XAUUSD
