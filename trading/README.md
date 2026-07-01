@@ -23,7 +23,20 @@ running MT5 terminal on the same machine. So:
 
 The strategy/backtest code is identical regardless of data source.
 
-## Quick start
+## Windows one-click (recommended)
+
+Extract this folder to **`C:\Users\Saravana_Rx100\Gold`** (the path in
+`config.py`), then:
+
+1. **`setup.bat`** — installs Python deps + MetaTrader5 (run once).
+2. Open **MetaTrader 5** and log in.
+3. **`fetch.bat`** — exports `data\XAUUSD_M15.csv` from MT5.
+4. **`backtest.bat`** — runs the strategy (session filter + partial-TP + 5-fold
+   walk-forward) and prints the metrics.
+
+To move the project, edit `GOLD_DIR` at the top of `config.py`.
+
+## Quick start (command line)
 
 ### 1. Install
 ```bash
@@ -78,9 +91,17 @@ python run_backtest.py --csv data/XAUUSD_M15.csv --walk-forward 5
 Each is a config knob so you can measure its effect honestly:
 
 - **Regime filter** — the single biggest lever (`--adx`, `use_regime_filter`).
+- **Session filter** — `--session`, trade only London/NY hours.
+- **Partial take-profit + breakeven** — ON by default; book half at +1R and move
+  the stop to entry. Raises realized win rate and smooths the curve.
 - **Trade-quality filter** — only the Value-Area edges, not every level.
 - **Confirmation** — `require_rejection` (rejection candle before entry).
 - **Reward:risk floor** — `--min-rr`.
+
+> ⚠️ **Win rate is not profit.** Partial-TP and tight targets raise win rate but
+> cap winners — expectancy can *fall* even as win rate rises. Always read
+> `expectancy_R` and `profit_factor` alongside `win_rate`. A 65% win rate that
+> loses money is worse than a 45% win rate that compounds.
 
 ## Roadmap (not yet built)
 

@@ -44,6 +44,10 @@ class StrategyConfig:
     use_regime_filter: bool = True
     adx_threshold: float = 25.0
     require_rejection: bool = True
+    # Session filter: only trade during active hours (server/broker time, 24h).
+    # Gold moves on London+NY; skipping the quiet Asian session raises quality.
+    session_filter: bool = False
+    active_hours: tuple[int, int] = (7, 21)  # inclusive-exclusive [start, end)
 
 
 def _is_rejection(bar, direction: int) -> bool:
@@ -81,6 +85,12 @@ def generate_signals(bars: pd.DataFrame, cfg: StrategyConfig | None = None) -> l
             continue
         if ranging is not None and not ranging[i]:
             continue  # only fade levels when ranging
+
+        if cfg.session_filter:
+            hour = bars["time"].iloc[i].hour
+            start, end = cfg.active_hours
+            if not (start <= hour < end):
+                continue  # skip low-liquidity hours
 
         window = bars.iloc[i - cfg.lookback : i]
         vp = build_profile(window, bins=cfg.profile_bins, value_area_pct=cfg.value_area_pct)

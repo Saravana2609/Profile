@@ -91,6 +91,10 @@ def main() -> None:
     p.add_argument("--min-rr", type=float, default=1.2)
     p.add_argument("--adx", type=float, default=25.0)
     p.add_argument("--no-regime", action="store_true", help="Disable the regime filter")
+    p.add_argument("--session", action="store_true",
+                   help="Only trade active hours (London/NY) — raises quality")
+    p.add_argument("--no-partial", action="store_true",
+                   help="Disable partial take-profit + breakeven (win-rate booster)")
     p.add_argument("--spread", type=float, default=0.25, help="XAUUSD spread in points")
     p.add_argument("--walk-forward", type=int, default=0, metavar="N",
                    help="Run N sequential out-of-sample folds")
@@ -115,8 +119,9 @@ def main() -> None:
         min_rr=args.min_rr,
         adx_threshold=args.adx,
         use_regime_filter=not args.no_regime,
+        session_filter=args.session,
     )
-    costs = CostModel(spread_usd=args.spread)
+    costs = CostModel(spread_usd=args.spread, enable_partial=not args.no_partial)
 
     signals = generate_signals(bars, cfg)
     print(f"Generated {len(signals)} signals")

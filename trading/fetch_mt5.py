@@ -18,21 +18,22 @@ from __future__ import annotations
 import argparse
 import os
 
+import config
 from volume_profile.data import load_from_mt5
 
 
 def main() -> None:
     p = argparse.ArgumentParser(description="Export XAUUSD bars from MT5 to CSV")
-    p.add_argument("--symbol", default="XAUUSD")
-    p.add_argument("--timeframe", default="M15",
+    p.add_argument("--symbol", default=config.SYMBOL)
+    p.add_argument("--timeframe", default=config.TIMEFRAME,
                    choices=["M1", "M5", "M15", "M30", "H1", "H4", "D1"])
-    p.add_argument("--bars", type=int, default=100_000)
+    p.add_argument("--bars", type=int, default=config.BARS)
     p.add_argument("--out", default=None)
     args = p.parse_args()
 
     df = load_from_mt5(args.symbol, args.timeframe, args.bars)
-    os.makedirs("data", exist_ok=True)
-    out = args.out or f"data/{args.symbol}_{args.timeframe}.csv"
+    os.makedirs(config.DATA_DIR, exist_ok=True)
+    out = args.out or os.path.join(config.DATA_DIR, f"{args.symbol}_{args.timeframe}.csv")
     df.to_csv(out, index=False)
     print(f"Wrote {len(df):,} bars to {out}")
     print(df.tail())
